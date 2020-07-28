@@ -6,8 +6,10 @@ interface SVGCoordinateSystemConfig {
     gridColor: string
     gridStrokeWidth: string
     drawGridX: boolean //enables/disables vertical grid lines
+    writeCoordsX: boolean
     gridIntervalX: number //distance between vertical grid lines
     drawGridY: boolean //enables/disables horizontal grid lines
+    writeCoordsY: boolean
     gridIntervalY: number //distance between horizontal grid lines
     classAttribute: string
     xArrowSize: number //percentage of full width/height
@@ -15,8 +17,6 @@ interface SVGCoordinateSystemConfig {
     yArrowSize: number //percentage of full width/height
     yArrowColor: string
 }
-
-//TODO unscaled text (units and numbers on next to y- and x-axis or left/right/top/bottom of svg)
 
 class SVGCoordinateSystem {
     private svg: SVGSVGElement
@@ -37,7 +37,8 @@ class SVGCoordinateSystem {
         this.style = style
         this.svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
         this.svg.setAttribute("preserveAspectRatio", "none")
-        this.svg.setAttribute("style", "transform: rotateX(180deg);") //needed because normal svg coordinates increase from top to bottom, but for charts they should increase from bottom to top
+        //needed because normal svg coordinates increase from top to bottom, but for charts they should increase from bottom to top
+        this.svg.setAttribute("style", "transform: rotateX(180deg);")
         this.xAxis = document.createElementNS("http://www.w3.org/2000/svg", "line")
         this.xAxis.setAttribute("y1", "0")
         this.xAxis.setAttribute("y2", "0")
@@ -56,17 +57,72 @@ class SVGCoordinateSystem {
         this.svg.appendChild(this.yAxis)
         this.svg.appendChild(this.yAxisArrow)
         this.svg.appendChild(this.content)
-        this.svgText = document.createElementNS("http://www.w3.org/2000/svg", "svg") //separate text element to leave text unscaled
-        this.setXRange(this.x)
-        this.setYRange(this.y)
+        this.svgText = document.createElementNS("http://www.w3.org/2000/svg", "svg") //separate text element to leave text unscaled and unrotated
+        this.svgText.style.position = "absolute"
+        this.svgText.style.left = "0"
+        this.setXRange(this.x, false)
+        this.setYRange(this.y, false)
         this.applyStyle(this.style)
+        //TODO figure out how to get around getBoundingClientRect() not being available at first
+    }
+
+    public onResize() {
+        this.updateTexts()
+    }
+
+    private makeTextAt(scaledX: number, scaledY: number, text: string, svgSize: DOMRect): SVGTextElement {
+        let element = document.createElementNS("http://www.w3.org/2000/svg", "text")
+        element.textContent = text
+        let relativeX = (scaledX-this.x.min) / (this.x.max-this.x.min)
+        let relativeY = 1-((scaledY-this.y.min) / (this.y.max-this.y.min))
+        let x = Math.floor(relativeX * svgSize.width)
+        let y = Math.floor(relativeY * svgSize.height)
+        element.setAttribute("x", x + "")
+        element.setAttribute("y", y + "")
+        return element
+    }
+
+    private updateTexts() {
+        while (this.svgText.children.length > 0) {
+            this.svgText.children[0].remove()
+        }
+        let svgSize = this.svg.getBoundingClientRect()
+        this.svgText.setAttribute("viewBox", `0,0 ${Math.floor(svgSize.width)},${Math.floor(svgSize.height)}`)
+        if (this.style.writeCoordsX) {
+            for (let x = this.style.gridIntervalX; x < this.x.max; x += this.style.gridIntervalX) {
+                let text = this.makeTextAt(x, this.y.min, Math.round(Math.floor(x*100)/100)+"", svgSize)
+                text.style.fontSize = "12px"
+                this.svgText.appendChild(text)
+            }
+            for (let x = 0; x > this.x.min; x -= this.style.gridIntervalX) {
+                let text = this.makeTextAt(x, this.y.min, Math.round(Math.floor(x*100)/100)+"", svgSize)
+                text.style.fontSize = "12px"
+                this.svgText.appendChild(text)
+            }
+        }
+        if (this.style.writeCoordsY) {
+            for (let y = this.style.gridIntervalY; y < this.y.max; y += this.style.gridIntervalY) {
+                let text = this.makeTextAt(this.x.min, y, Math.round(Math.floor(y*100)/100)+"", svgSize)
+                text.style.fontSize = "12px"
+                this.svgText.appendChild(text)
+            }
+            for (let y = 0; y > this.y.min; y -= this.style.gridIntervalY) {
+                let text = this.makeTextAt(this.x.min, y, Math.round(Math.floor(y*100)/100)+"", svgSize)
+                text.style.fontSize = "12px"
+                this.svgText.appendChild(text)
+            }
+        }
     }
 
     getSVG() {
         return this.svg
     }
 
-    public setXRange(x: {min: number, max: number}) {
+    getTextSVG() {
+        return this.svgText
+    }
+
+    public setXRange(x: {min: number, max: number}, updateSVG: boolean) {
         this.x = x
         this.svg.setAttribute("viewBox", `${this.x.min},${this.y.min} ${this.x.max-this.x.min},${this.y.max-this.y.min}`)
         this.xAxis.setAttribute("x1", this.x.min + "")
@@ -74,10 +130,13 @@ class SVGCoordinateSystem {
         let arrowSize = (this.style.xArrowSize*(this.y.max-this.y.min))/2
         let arrowSize2 = (this.style.xArrowSize*(this.x.max-this.x.min))/2
         this.xAxisArrow.setAttribute("points", `${this.x.max},0 ${this.x.max-arrowSize2},${arrowSize} ${this.x.max-arrowSize2},${-arrowSize}`)
-        this.updateGrid()
+        if (updateSVG) {
+            this.updateGrid()
+            this.updateTexts()
+        }
     }
 
-    public setYRange(y: {min: number, max: number}) {
+    public setYRange(y: {min: number, max: number}, updateSVG: boolean) {
         this.y = y
         this.svg.setAttribute("viewBox", `${this.x.min},${this.y.min} ${this.x.max-this.x.min},${this.y.max-this.y.min}`)
         this.yAxis.setAttribute("y1", this.y.min + "")
@@ -85,7 +144,10 @@ class SVGCoordinateSystem {
         let arrowSize = (this.style.yArrowSize*(this.x.max-this.x.min))/2
         let arrowSize2 = (this.style.yArrowSize*(this.y.max-this.y.min))/2
         this.yAxisArrow.setAttribute("points", `0,${this.y.max} ${arrowSize},${this.y.max-arrowSize2} ${-arrowSize},${this.y.max-arrowSize2}`)
-        this.updateGrid()
+        if (updateSVG) {
+            this.updateGrid()
+            this.updateTexts()
+        }
     }
 
     public applyStyle(style: SVGCoordinateSystemConfig) {
@@ -108,6 +170,7 @@ class SVGCoordinateSystem {
             this.yAxisArrow.setAttribute("points", `0,${this.y.max} ${arrowSize},${this.y.max-arrowSize2} ${-arrowSize},${this.y.max-arrowSize2}`)
         }
         this.updateGrid()
+        this.updateTexts()
     }
 
     public appendChild(child: SVGElement) {

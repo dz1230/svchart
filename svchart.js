@@ -11,7 +11,6 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
-//TODO unscaled text (units and numbers on next to y- and x-axis or left/right/top/bottom of svg)
 var SVGCoordinateSystem = /** @class */ (function () {
     function SVGCoordinateSystem(x, y, style) {
         this.x = x;
@@ -19,7 +18,8 @@ var SVGCoordinateSystem = /** @class */ (function () {
         this.style = style;
         this.svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         this.svg.setAttribute("preserveAspectRatio", "none");
-        this.svg.setAttribute("style", "transform: rotateX(180deg);"); //needed because normal svg coordinates increase from top to bottom, but for charts they should increase from bottom to top
+        //needed because normal svg coordinates increase from top to bottom, but for charts they should increase from bottom to top
+        this.svg.setAttribute("style", "transform: rotateX(180deg);");
         this.xAxis = document.createElementNS("http://www.w3.org/2000/svg", "line");
         this.xAxis.setAttribute("y1", "0");
         this.xAxis.setAttribute("y2", "0");
@@ -38,15 +38,66 @@ var SVGCoordinateSystem = /** @class */ (function () {
         this.svg.appendChild(this.yAxis);
         this.svg.appendChild(this.yAxisArrow);
         this.svg.appendChild(this.content);
-        this.svgText = document.createElementNS("http://www.w3.org/2000/svg", "svg"); //separate text element to leave text unscaled
-        this.setXRange(this.x);
-        this.setYRange(this.y);
+        this.svgText = document.createElementNS("http://www.w3.org/2000/svg", "svg"); //separate text element to leave text unscaled and unrotated
+        this.svgText.style.position = "absolute";
+        this.svgText.style.left = "0";
+        this.setXRange(this.x, false);
+        this.setYRange(this.y, false);
         this.applyStyle(this.style);
+        //TODO figure out how to get around getBoundingClientRect() not being available at first
     }
+    SVGCoordinateSystem.prototype.onResize = function () {
+        this.updateTexts();
+    };
+    SVGCoordinateSystem.prototype.makeTextAt = function (scaledX, scaledY, text, svgSize) {
+        var element = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        element.textContent = text;
+        var relativeX = (scaledX - this.x.min) / (this.x.max - this.x.min);
+        var relativeY = 1 - ((scaledY - this.y.min) / (this.y.max - this.y.min));
+        var x = Math.floor(relativeX * svgSize.width);
+        var y = Math.floor(relativeY * svgSize.height);
+        element.setAttribute("x", x + "");
+        element.setAttribute("y", y + "");
+        return element;
+    };
+    SVGCoordinateSystem.prototype.updateTexts = function () {
+        while (this.svgText.children.length > 0) {
+            this.svgText.children[0].remove();
+        }
+        var svgSize = this.svg.getBoundingClientRect();
+        this.svgText.setAttribute("viewBox", "0,0 " + Math.floor(svgSize.width) + "," + Math.floor(svgSize.height));
+        if (this.style.writeCoordsX) {
+            for (var x = this.style.gridIntervalX; x < this.x.max; x += this.style.gridIntervalX) {
+                var text = this.makeTextAt(x, this.y.min, Math.round(Math.floor(x * 100) / 100) + "", svgSize);
+                text.style.fontSize = "12px";
+                this.svgText.appendChild(text);
+            }
+            for (var x = 0; x > this.x.min; x -= this.style.gridIntervalX) {
+                var text = this.makeTextAt(x, this.y.min, Math.round(Math.floor(x * 100) / 100) + "", svgSize);
+                text.style.fontSize = "12px";
+                this.svgText.appendChild(text);
+            }
+        }
+        if (this.style.writeCoordsY) {
+            for (var y = this.style.gridIntervalY; y < this.y.max; y += this.style.gridIntervalY) {
+                var text = this.makeTextAt(this.x.min, y, Math.round(Math.floor(y * 100) / 100) + "", svgSize);
+                text.style.fontSize = "12px";
+                this.svgText.appendChild(text);
+            }
+            for (var y = 0; y > this.y.min; y -= this.style.gridIntervalY) {
+                var text = this.makeTextAt(this.x.min, y, Math.round(Math.floor(y * 100) / 100) + "", svgSize);
+                text.style.fontSize = "12px";
+                this.svgText.appendChild(text);
+            }
+        }
+    };
     SVGCoordinateSystem.prototype.getSVG = function () {
         return this.svg;
     };
-    SVGCoordinateSystem.prototype.setXRange = function (x) {
+    SVGCoordinateSystem.prototype.getTextSVG = function () {
+        return this.svgText;
+    };
+    SVGCoordinateSystem.prototype.setXRange = function (x, updateSVG) {
         this.x = x;
         this.svg.setAttribute("viewBox", this.x.min + "," + this.y.min + " " + (this.x.max - this.x.min) + "," + (this.y.max - this.y.min));
         this.xAxis.setAttribute("x1", this.x.min + "");
@@ -54,9 +105,12 @@ var SVGCoordinateSystem = /** @class */ (function () {
         var arrowSize = (this.style.xArrowSize * (this.y.max - this.y.min)) / 2;
         var arrowSize2 = (this.style.xArrowSize * (this.x.max - this.x.min)) / 2;
         this.xAxisArrow.setAttribute("points", this.x.max + ",0 " + (this.x.max - arrowSize2) + "," + arrowSize + " " + (this.x.max - arrowSize2) + "," + -arrowSize);
-        this.updateGrid();
+        if (updateSVG) {
+            this.updateGrid();
+            this.updateTexts();
+        }
     };
-    SVGCoordinateSystem.prototype.setYRange = function (y) {
+    SVGCoordinateSystem.prototype.setYRange = function (y, updateSVG) {
         this.y = y;
         this.svg.setAttribute("viewBox", this.x.min + "," + this.y.min + " " + (this.x.max - this.x.min) + "," + (this.y.max - this.y.min));
         this.yAxis.setAttribute("y1", this.y.min + "");
@@ -64,7 +118,10 @@ var SVGCoordinateSystem = /** @class */ (function () {
         var arrowSize = (this.style.yArrowSize * (this.x.max - this.x.min)) / 2;
         var arrowSize2 = (this.style.yArrowSize * (this.y.max - this.y.min)) / 2;
         this.yAxisArrow.setAttribute("points", "0," + this.y.max + " " + arrowSize + "," + (this.y.max - arrowSize2) + " " + -arrowSize + "," + (this.y.max - arrowSize2));
-        this.updateGrid();
+        if (updateSVG) {
+            this.updateGrid();
+            this.updateTexts();
+        }
     };
     SVGCoordinateSystem.prototype.applyStyle = function (style) {
         this.xAxis.setAttribute("stroke", style.xAxisColor);
@@ -86,6 +143,7 @@ var SVGCoordinateSystem = /** @class */ (function () {
             this.yAxisArrow.setAttribute("points", "0," + this.y.max + " " + arrowSize + "," + (this.y.max - arrowSize2) + " " + -arrowSize + "," + (this.y.max - arrowSize2));
         }
         this.updateGrid();
+        this.updateTexts();
     };
     SVGCoordinateSystem.prototype.appendChild = function (child) {
         this.content.appendChild(child);

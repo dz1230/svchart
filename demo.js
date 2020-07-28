@@ -24,8 +24,10 @@ let coordSystemStyle = {
     gridColor: "lightgrey",
     gridStrokeWidth: "1px",
     drawGridX: true,
+    writeCoordsX: true,
     gridIntervalX: 4,
     drawGridY: true,
+    writeCoordsY: true,
     gridIntervalY: 8,
     classAttribute: "demo",
     xArrowSize: 0.0125,
@@ -34,6 +36,7 @@ let coordSystemStyle = {
 
 let coordSystem = new SVGCoordinateSystem(xRange, yRange, coordSystemStyle)
 document.getElementById("container").appendChild(coordSystem.getSVG())
+document.getElementById("container").appendChild(coordSystem.getTextSVG())
 
 let testGraph1 = new SVDataChart(testdata1, {color: "orange", strokeWidth: "2px"})
 coordSystem.appendChild(testGraph1.getChartElement())
@@ -46,3 +49,7 @@ coordSystem.appendChild(testGraph3.getChartElement())
 
 let testGraph4 = new SVFunctionChart((x) => {return x*x},xRange,1,{color: "red", strokeWidth: "2px"})
 coordSystem.appendChild(testGraph4.getChartElement())
+
+window.addEventListener("resize", () => {
+    coordSystem.onResize()
+})
