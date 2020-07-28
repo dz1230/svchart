@@ -1,3 +1,16 @@
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 //TODO unscaled text (units and numbers on next to y- and x-axis or left/right/top/bottom of svg)
 var SVGCoordinateSystem = /** @class */ (function () {
     function SVGCoordinateSystem(x, y, style) {
@@ -127,11 +140,10 @@ var SVGCoordinateSystem = /** @class */ (function () {
     return SVGCoordinateSystem;
 }());
 var SVChart = /** @class */ (function () {
-    function SVChart(data, style) {
+    function SVChart(style) {
         this.element = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
         this.element.setAttribute("vector-effect", "non-scaling-stroke");
         this.element.setAttribute("fill", "none");
-        this.setData(data);
         this.applyStyle(style);
     }
     SVChart.prototype.applyStyle = function (style) {
@@ -139,14 +151,26 @@ var SVChart = /** @class */ (function () {
         this.element.setAttribute("stroke", this.style.color);
         this.element.setAttribute("stroke-width", this.style.strokeWidth);
     };
-    SVChart.prototype.setData = function (data) {
+    SVChart.prototype.getChartElement = function () {
+        return this.element;
+    };
+    return SVChart;
+}());
+var SVDataChart = /** @class */ (function (_super) {
+    __extends(SVDataChart, _super);
+    function SVDataChart(data, style) {
+        var _this = _super.call(this, style) || this;
+        _this.setData(data);
+        return _this;
+    }
+    SVDataChart.prototype.setData = function (data) {
         this.data = data.slice(0);
         this.data.sort(function (a, b) {
             return a.x - b.x;
         });
         this.updatePointsAttribute();
     };
-    SVChart.prototype.addDataPoint = function (point) {
+    SVDataChart.prototype.addDataPoint = function (point) {
         var i = 0;
         for (; i < this.data.length; i++) {
             if (this.data[i].x > point.x) {
@@ -156,7 +180,10 @@ var SVChart = /** @class */ (function () {
         this.data = this.data.slice(0, i).concat({ x: point.x, y: point.y }).concat(this.data.slice(i));
         this.updatePointsAttribute();
     };
-    SVChart.prototype.updatePointsAttribute = function () {
+    SVDataChart.prototype.getData = function () {
+        return this.data;
+    };
+    SVDataChart.prototype.updatePointsAttribute = function () {
         var pointsAttribute = "";
         for (var i = 0; i < this.data.length; i++) {
             var data = this.data[i];
@@ -164,30 +191,43 @@ var SVChart = /** @class */ (function () {
                 pointsAttribute += " ";
             pointsAttribute += data.x + "," + data.y;
         }
-        this.element.setAttribute("points", pointsAttribute);
+        this.getChartElement().setAttribute("points", pointsAttribute);
     };
-    SVChart.prototype.getChartElement = function () {
-        return this.element;
-    };
-    return SVChart;
-}());
-var SVFunctionChart = /** @class */ (function () {
+    return SVDataChart;
+}(SVChart));
+var SVFunctionChart = /** @class */ (function (_super) {
+    __extends(SVFunctionChart, _super);
     function SVFunctionChart(f, range, detail, style) {
-        this.f = f;
-        this.range = range;
-        this.detail = detail;
-        this.element = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-        this.element.setAttribute("vector-effect", "non-scaling-stroke");
-        this.element.setAttribute("fill", "none");
-        this.applyStyle(style);
-        this.updateElement();
+        var _this = _super.call(this, style) || this;
+        _this.f = f;
+        _this.range = range;
+        _this.detail = detail;
+        _this.applyStyle(style);
+        _this.updatePointsAttribute();
+        return _this;
     }
-    SVFunctionChart.prototype.applyStyle = function (style) {
-        this.style = style;
-        this.element.setAttribute("stroke", this.style.color);
-        this.element.setAttribute("stroke-width", this.style.strokeWidth);
+    SVFunctionChart.prototype.setFunction = function (value) {
+        this.f = value;
+        this.updatePointsAttribute();
     };
-    SVFunctionChart.prototype.updateElement = function () {
+    SVFunctionChart.prototype.setRange = function (value) {
+        this.range = value;
+        this.updatePointsAttribute();
+    };
+    SVFunctionChart.prototype.setDetail = function (value) {
+        this.detail = value;
+        this.updatePointsAttribute();
+    };
+    SVFunctionChart.prototype.getFunction = function () {
+        return this.f;
+    };
+    SVFunctionChart.prototype.getRange = function () {
+        return this.range;
+    };
+    SVFunctionChart.prototype.getDetail = function () {
+        return this.detail;
+    };
+    SVFunctionChart.prototype.updatePointsAttribute = function () {
         var pointsAttribute = "";
         for (var x = this.range.min; x <= this.range.max; x += this.detail) {
             var value = this.f(x);
@@ -195,10 +235,7 @@ var SVFunctionChart = /** @class */ (function () {
                 pointsAttribute += " ";
             pointsAttribute += x + "," + value;
         }
-        this.element.setAttribute("points", pointsAttribute);
-    };
-    SVFunctionChart.prototype.getChartElement = function () {
-        return this.element;
+        this.getChartElement().setAttribute("points", pointsAttribute);
     };
     return SVFunctionChart;
-}());
+}(SVChart));

@@ -35,13 +35,13 @@ let coordSystemStyle = {
 let coordSystem = new SVGCoordinateSystem(xRange, yRange, coordSystemStyle)
 document.getElementById("container").appendChild(coordSystem.getSVG())
 
-let testGraph1 = new SVChart(testdata1, {color: "orange", strokeWidth: "2px"})
+let testGraph1 = new SVDataChart(testdata1, {color: "orange", strokeWidth: "2px"})
 coordSystem.appendChild(testGraph1.getChartElement())
 
-let testGraph2 = new SVChart(testdata2, {color: "blue", strokeWidth: "2px"})
+let testGraph2 = new SVDataChart(testdata2, {color: "blue", strokeWidth: "2px"})
 coordSystem.appendChild(testGraph2.getChartElement())
 
-let testGraph3 = new SVChart(testdata3, {color: "green", strokeWidth: "2px"})
+let testGraph3 = new SVDataChart(testdata3, {color: "green", strokeWidth: "2px"})
 coordSystem.appendChild(testGraph3.getChartElement())
 
 let testGraph4 = new SVFunctionChart((x) => {return x*x},xRange,1,{color: "red", strokeWidth: "2px"})

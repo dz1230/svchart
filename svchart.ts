@@ -1,4 +1,4 @@
-interface SVGCoordinateSystemStyle {
+interface SVGCoordinateSystemConfig {
     xAxisColor: string
     xAxisStrokeWidth: string
     yAxisColor: string
@@ -28,10 +28,10 @@ class SVGCoordinateSystem {
     private xAxisArrow: SVGPolygonElement
     private yAxis: SVGLineElement
     private yAxisArrow: SVGPolygonElement
-    private style: SVGCoordinateSystemStyle
+    private style: SVGCoordinateSystemConfig
     private content: SVGGElement
 
-    constructor(x: {min: number, max: number}, y: {min: number, max: number}, style: SVGCoordinateSystemStyle) {
+    constructor(x: {min: number, max: number}, y: {min: number, max: number}, style: SVGCoordinateSystemConfig) {
         this.x = x
         this.y = y
         this.style = style
@@ -88,7 +88,7 @@ class SVGCoordinateSystem {
         this.updateGrid()
     }
 
-    public applyStyle(style: SVGCoordinateSystemStyle) {
+    public applyStyle(style: SVGCoordinateSystemConfig) {
         this.xAxis.setAttribute("stroke", style.xAxisColor)
         this.xAxis.setAttribute("stroke-width", style.xAxisStrokeWidth)
         this.yAxis.setAttribute("stroke", style.yAxisColor)
@@ -164,23 +164,19 @@ class SVGCoordinateSystem {
     }
 }
 
-//TODO proper OOP
-
 interface SVChartStyle {
     color: string
     strokeWidth: string
 }
 
 class SVChart {
-    private data: {x: number, y: number}[]
     private style: SVChartStyle
     private element: SVGPolylineElement
 
-    constructor(data: {x: number, y: number}[], style: SVChartStyle) {
+    constructor(style: SVChartStyle) {
         this.element = document.createElementNS("http://www.w3.org/2000/svg", "polyline")
         this.element.setAttribute("vector-effect", "non-scaling-stroke")
         this.element.setAttribute("fill", "none")
-        this.setData(data)
         this.applyStyle(style)
     }
 
@@ -188,6 +184,19 @@ class SVChart {
         this.style = style
         this.element.setAttribute("stroke", this.style.color)
         this.element.setAttribute("stroke-width", this.style.strokeWidth)
+    }
+
+    public getChartElement() {
+        return this.element
+    }
+}
+
+class SVDataChart extends SVChart {
+    private data: {x: number, y: number}[]
+
+    constructor(data: {x: number, y: number}[], style: SVChartStyle) {
+        super(style)
+        this.setData(data)
     }
 
     public setData(data: {x: number, y: number}[]) {
@@ -209,6 +218,10 @@ class SVChart {
         this.updatePointsAttribute()
     }
 
+    public getData() {
+        return this.data
+    }
+
     private updatePointsAttribute() {
         let pointsAttribute = ""
         for (let i = 0; i < this.data.length; i++) {
@@ -216,49 +229,58 @@ class SVChart {
             if (pointsAttribute != "") pointsAttribute += " "
             pointsAttribute += `${data.x},${data.y}`
         }
-        this.element.setAttribute("points", pointsAttribute)
-    }
-
-    public getChartElement() {
-        return this.element
+        this.getChartElement().setAttribute("points", pointsAttribute)
     }
 }
 
-class SVFunctionChart {
-    private element: SVGPolylineElement
+class SVFunctionChart extends SVChart {
     private f: (x: number) => number
     private detail: number
-    private style: SVChartStyle
     private range: {min: number, max: number}
     
     constructor(f: (x: number) => number, range: {min: number, max: number}, detail: number, style: SVChartStyle) {
+        super(style)
         this.f = f
         this.range = range
         this.detail = detail
-        this.element = document.createElementNS("http://www.w3.org/2000/svg", "polyline")
-        this.element.setAttribute("vector-effect", "non-scaling-stroke")
-        this.element.setAttribute("fill", "none")
         this.applyStyle(style)
-        this.updateElement()
+        this.updatePointsAttribute()
     }
 
-    public applyStyle(style: SVChartStyle) {
-        this.style = style
-        this.element.setAttribute("stroke", this.style.color)
-        this.element.setAttribute("stroke-width", this.style.strokeWidth)
+    public setFunction(value: (x: number) => number) {
+        this.f = value
+        this.updatePointsAttribute()
     }
 
-    public updateElement() {
+    public setRange(value: {min: number, max: number}) {
+        this.range = value
+        this.updatePointsAttribute()
+    }
+
+    public setDetail(value: number) {
+        this.detail = value
+        this.updatePointsAttribute()
+    }
+
+    public getFunction(): (x: number) => number {
+        return this.f
+    }
+
+    public getRange(): {min: number, max: number} {
+        return this.range
+    }
+
+    public getDetail(): number {
+        return this.detail
+    }
+
+    private updatePointsAttribute() {
         let pointsAttribute = ""
         for (let x = this.range.min; x <= this.range.max; x += this.detail) {
             let value = this.f(x)
             if (pointsAttribute !== "") pointsAttribute += " "
             pointsAttribute += `${x},${value}`
         }
-        this.element.setAttribute("points", pointsAttribute)
-    }
-
-    public getChartElement() {
-        return this.element
+        this.getChartElement().setAttribute("points", pointsAttribute)
     }
 }
