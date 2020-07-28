@@ -6,7 +6,8 @@ html, body, #container {
     height: 100%;
 }
 
-svg {
-    width: 500px;
-    height: 400px;
+svg.demo {
+    width: 50%;
+    height: 50%;
 }
+

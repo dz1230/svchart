@@ -1,35 +1,48 @@
 "use strict"
 
-let testdata = [
-    {x: -5003, y: 4},
-    {x: 130, y: 570},
-    {x: 57, y: -12},
-    {x: 3, y: 4},
-    {x: -1, y: 5},
-    {x: 2, y: 7},
-    {x: 4, y: -7},
-    {x: 8, y: -500},
-    {x: 9, y: 67},
-    {x: -2010, y: -570},
-]
+let testdata1 = []
+let testdata2 = []
+let testdata3 = []
+
+for (let x = -10; x < 57; x++) {
+    testdata1.push({x: x, y: (Math.random()*85)-15})
+}
 
 let xRange = {min: -10, max: 57}
 let yRange = {min: -15, max: 70}
+
+testdata2.push({x: xRange.min, y: 5})
+testdata2.push({x: xRange.max, y: 5})
+testdata3.push({x: xRange.min, y: xRange.min})
+testdata3.push({x: xRange.max, y: xRange.max})
+
 let coordSystemStyle = {
     xAxisColor: "grey",
-    xAxisStrokWidth: "1px",
+    xAxisStrokeWidth: "2px",
     yAxisColor: "grey",
-    yAxisStrokeWidth: "1px",
+    yAxisStrokeWidth: "2px",
     gridColor: "lightgrey",
     gridStrokeWidth: "1px",
     drawGridX: true,
-    gridIntervalX: 1,
+    gridIntervalX: 4,
     drawGridY: true,
-    gridIntervalY: 1,
+    gridIntervalY: 8,
+    classAttribute: "demo",
+    xArrowSize: 0.0125,
+    yArrowSize: 0.0125,
 }
 
 let coordSystem = new SVGCoordinateSystem(xRange, yRange, coordSystemStyle)
 document.getElementById("container").appendChild(coordSystem.getSVG())
 
-let testGraph = new SVChart(testdata, {color: "black", strokeWidth: "2px"})
-coordSystem.appendChild(testGraph.getChartElement())
+let testGraph1 = new SVChart(testdata1, {color: "orange", strokeWidth: "2px"})
+coordSystem.appendChild(testGraph1.getChartElement())
+
+let testGraph2 = new SVChart(testdata2, {color: "blue", strokeWidth: "2px"})
+coordSystem.appendChild(testGraph2.getChartElement())
+
+let testGraph3 = new SVChart(testdata3, {color: "green", strokeWidth: "2px"})
+coordSystem.appendChild(testGraph3.getChartElement())
+
+let testGraph4 = new SVFunctionChart((x) => {return x*x},xRange,1,{color: "red", strokeWidth: "2px"})
+coordSystem.appendChild(testGraph4.getChartElement())
