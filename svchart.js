@@ -13,13 +13,16 @@ var __extends = (this && this.__extends) || (function () {
 })();
 var SVGCoordinateSystem = /** @class */ (function () {
     function SVGCoordinateSystem(x, y, style) {
+        var _this = this;
         this.x = x;
         this.y = y;
         this.style = style;
+        this.wrapper = document.createElement("div");
+        this.wrapper.style.position = "relative";
         this.svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         this.svg.setAttribute("preserveAspectRatio", "none");
         //needed because normal svg coordinates increase from top to bottom, but for charts they should increase from bottom to top
-        this.svg.setAttribute("style", "transform: rotateX(180deg);");
+        this.svg.setAttribute("style", "transform: rotateX(180deg);width:100%;height:100%;");
         this.xAxis = document.createElementNS("http://www.w3.org/2000/svg", "line");
         this.xAxis.setAttribute("y1", "0");
         this.xAxis.setAttribute("y2", "0");
@@ -41,10 +44,14 @@ var SVGCoordinateSystem = /** @class */ (function () {
         this.svgText = document.createElementNS("http://www.w3.org/2000/svg", "svg"); //separate text element to leave text unscaled and unrotated
         this.svgText.style.position = "absolute";
         this.svgText.style.left = "0";
+        this.svgText.style.width = "100%";
+        this.svgText.style.height = "100%";
+        this.wrapper.appendChild(this.svg);
+        this.wrapper.appendChild(this.svgText);
         this.setXRange(this.x, false);
         this.setYRange(this.y, false);
         this.applyStyle(this.style);
-        //TODO figure out how to get around getBoundingClientRect() not being available at first
+        setTimeout(function () { _this.onResize(); }, 20);
     }
     SVGCoordinateSystem.prototype.onResize = function () {
         this.updateTexts();
@@ -91,11 +98,8 @@ var SVGCoordinateSystem = /** @class */ (function () {
             }
         }
     };
-    SVGCoordinateSystem.prototype.getSVG = function () {
-        return this.svg;
-    };
-    SVGCoordinateSystem.prototype.getTextSVG = function () {
-        return this.svgText;
+    SVGCoordinateSystem.prototype.getWrapper = function () {
+        return this.wrapper;
     };
     SVGCoordinateSystem.prototype.setXRange = function (x, updateSVG) {
         this.x = x;
@@ -128,8 +132,7 @@ var SVGCoordinateSystem = /** @class */ (function () {
         this.xAxis.setAttribute("stroke-width", style.xAxisStrokeWidth);
         this.yAxis.setAttribute("stroke", style.yAxisColor);
         this.yAxis.setAttribute("stroke-width", style.yAxisStrokeWidth);
-        this.svg.setAttribute("class", this.style.classAttribute);
-        this.svgText.setAttribute("class", this.style.classAttribute);
+        this.wrapper.setAttribute("class", this.style.classAttribute);
         this.xAxisArrow.setAttribute("fill", this.style.xArrowColor ? this.style.xArrowColor : this.style.xAxisColor);
         this.yAxisArrow.setAttribute("fill", this.style.yArrowColor ? this.style.yArrowColor : this.style.yAxisColor);
         {

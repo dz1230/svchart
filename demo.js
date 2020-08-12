@@ -35,8 +35,7 @@ let coordSystemStyle = {
 }
 
 let coordSystem = new SVGCoordinateSystem(xRange, yRange, coordSystemStyle)
-document.getElementById("container").appendChild(coordSystem.getSVG())
-document.getElementById("container").appendChild(coordSystem.getTextSVG())
+document.getElementById("container").appendChild(coordSystem.getWrapper())
 
 let testGraph1 = new SVDataChart(testdata1, {color: "orange", strokeWidth: "2px"})
 coordSystem.appendChild(testGraph1.getChartElement())
